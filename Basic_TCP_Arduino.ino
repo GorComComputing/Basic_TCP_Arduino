@@ -1,5 +1,5 @@
 // Basic TCP для Arduino
-// работает через COM-порт TCP-протокол
+// работает через COM-порт или TCP-протокол
 
 #define RL_BUFSIZE 20 // Размер буфера ввода
 #define TOK_BUFSIZE 64  // Размер буфера с указателями на токены
@@ -12,6 +12,11 @@
 int cmd_led(char **args);
 int cmd_help(char **args);
 int cmd_exit(char **args);
+int cmd_list(char **args);
+int cmd_print(char **args);
+int cmd_new(char **args);
+int cmd_input(char **args);
+int cmd_run(char **args);
 
 char *line;   // Указатель на строку ввода
 char **args;  // Указатель на указатель на аргументы
@@ -24,14 +29,24 @@ char program[MAX_SIZE]; // Указатель на буфер исходника
 char *cmd_str[] = {
 	"led",           // Включение светодиода
 	"help",			     // Справка
-	"exit"			     // Выход
+	"exit", 		     // Выход
+  "list",          // Вывод на экран программы
+  "print",         // PRINT
+  "new",           // Очищает программу
+  "input",         // Ввести переменную  
+  "run"            // Запуск выполнения программы
 };
 
 // Массив указателей на функции встроенных команд
 int (*cmd_func[]) (char **) = {
 	cmd_led,
 	cmd_help,
-	cmd_exit
+	cmd_exit,
+  cmd_list,
+  cmd_print,
+  cmd_new,
+  cmd_input,
+  cmd_run    
 };
 
 
@@ -200,9 +215,8 @@ int cmd_led(char **args) {
 // Команда help
 int cmd_help(char **args) {
 	int i;
-  Serial.println("Shell v.1.0 (c) 2022 Gor.Com");
-	Serial.println("Type program names and arguments, and hit enter.");
-	Serial.println("The following are built in:");
+  Serial.println("Basic v.1.0 (c) 2022 Gor.Com");
+	Serial.println("The following command are built in:");
 	
 	// Выводим массив имен встроенных команд
 	for (i = 0; i < num_builtins(); i++) {
@@ -219,6 +233,95 @@ int cmd_exit(char **args) {
 }
 
 
+// Команда вывода на экран программы
+int cmd_list(char **args) {
+    // Служебный вывод программы
+    for(int i = 0; i < MAX_LINE; i++){
+      if(program[i*20] != 0x0D){ 
+        Serial.print(i+1);
+        Serial.print(" ");
+      }
+
+      for(int j = 0; j < MAX_LENGTH; j++){
+        if(program[i*20 + j] != 0x0D){        
+          Serial.print(program[i*20 + j]);
+        }
+      }
+      if(program[i*20] != 0x0D){ 
+        Serial.println("");
+      }        
+    }
+	return 0;
+}
+
+
+// Команда выполнения программы
+int cmd_run(char **args) {
+    for(int i = 0; i < MAX_LINE; i++){
+      line[0] = 0;
+      for(int j = 0; j < MAX_LENGTH; j++){
+        if(program[i*20 + j] != 0x0D){
+          line[j] = program[i*20 + j];       // Копируем строку из программы для выполнения      
+        }
+      }
+      // execute str
+      if(line[0]){
+        args = split_line(line);  // Извлекает аргументы
+        execute(args, line);      // Исполняем команду  
+      }    
+        
+    }
+	return 0;
+}
+
+
+// Команда PRINT
+int cmd_print(char **args) {
+  if(args[1] == NULL){
+    return 0;
+  }
+  if(args[1][0] == 34){
+    for(int i = 1; i < 20; i++){
+      if(args[1][i] == 34 || args[1][i] == 0x0D || args[1][i] == 0x20 || args[1][i] == 0){
+        if(args[1][i] == 34 && args[1][i+1] != 0x3B){    
+           Serial.println(""); 
+        }
+        break;
+      } 
+      Serial.print(args[1][i]);    
+    }
+    
+    return 0;
+  }
+
+  Serial.println(process_expr());
+	return 0;
+}
+
+
+// Команда очистки программы
+int cmd_new(char **args) {
+  running = 0;
+  start_bas();
+	return 0;
+}
+
+
+// Команда ввода переменной
+int cmd_input(char **args) {
+  Serial.print("?");
+  while(Serial.available()==0);  //Ожидаем ввода данных
+  // Вычисляем адрес по букве
+  vars[args[1][0] - 97] = process_expr();//Serial.read();
+
+  // Служебный вывод
+  for(int i = 0; i < 26; i++){
+    Serial.print(vars[i]); 
+  } 
+  Serial.println(""); 
+  
+	return 0;
+}
 
 
 // Буфер исходника программы, заполняем символом 0Dh (Enter)
@@ -271,19 +374,27 @@ void loop() {
   int number = dec_str_to_number(line);   
   
   if(number){ // Если строчка начинается с числа, то сохраняем строку в программе
-    Serial.println(number);
+    //Serial.println(number);
+    char isStr = 0;
+    char count = 0;
     for(int i = 0; i < MAX_LENGTH; i++){
-      if(!line[i]) break;     
-      program[(number-1)*MAX_LENGTH + i] = line[i];
-    }
-
-    // Служебный вывод программы
-    for(int i = 0; i < MAX_LINE; i++){
-      for(int j = 0; j < MAX_LENGTH; j++){
-        Serial.print(program[i*20 + j], HEX);
+      if(!line[i]) {  
+        //Serial.print("break"); 
+        break;
       }
-      Serial.println("");
-    } 
+      //Serial.print("#");
+      if((line[i] == 0x20 || (line[i] > 0x2F && line[i] < 0x3A)) && isStr == 0){  
+        //Serial.print(line[i], HEX);
+        count++;
+        continue;
+      }
+      else {
+        isStr = 1;
+        program[(number-1)*MAX_LENGTH + i - count] = line[i];
+        //Serial.print("-");
+      }
+    }
+ 
 
   }
   else { // Иначе выполняем без сохранения
