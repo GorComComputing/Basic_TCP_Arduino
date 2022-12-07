@@ -1,5 +1,9 @@
 // Basic TCP для Arduino
 // работает через COM-порт или TCP-протокол
+#include <Adafruit_GFX.h>     // Библиотеки работы с дисплеем Nokia 5110
+#include <Adafruit_PCD8544.h> //
+Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 6, 7); // Инициализация пинов дисплея
+
 
 #define RL_BUFSIZE 20 // Размер буфера ввода
 #define TOK_BUFSIZE 64  // Размер буфера с указателями на токены
@@ -30,11 +34,11 @@ char *cmd_str[] = {
 	"led",           // Включение светодиода
 	"help",			     // Справка
 	"exit", 		     // Выход
-  "list",          // Вывод на экран программы
-  "print",         // PRINT
-  "new",           // Очищает программу
-  "input",         // Ввести переменную  
-  "run"            // Запуск выполнения программы
+	"list",          // Вывод на экран программы
+	"print",         // PRINT
+	"new",           // Очищает программу
+	"input",         // Ввести переменную  
+	"run"            // Запуск выполнения программы
 };
 
 // Массив указателей на функции встроенных команд
@@ -42,11 +46,11 @@ int (*cmd_func[]) (char **) = {
 	cmd_led,
 	cmd_help,
 	cmd_exit,
-  cmd_list,
-  cmd_print,
-  cmd_new,
-  cmd_input,
-  cmd_run    
+	cmd_list,
+	cmd_print,
+	cmd_new,
+	cmd_input,
+	cmd_run    
 };
 
 
@@ -106,6 +110,8 @@ char **split_line(char *line){
 int launch(char **args) {
 	// Здесь должен быть запуск процессов
   Serial.println("Launched");
+  display.println("Launched");
+  display.display();  
 	return 1;
 }
 
@@ -118,6 +124,8 @@ int num_builtins() {
 // ErrorMsg
 void error_msg(){
   Serial.println("Error!");
+  display.println("Error!");
+  display.display();
 }
 
 
@@ -161,20 +169,28 @@ int execute(char **args, char *line){
   if(line[position] == '='){
     // вычисляем выражение и присваиваем в адрес
     Serial.println("Assume");
+    display.println("Assume");
+    display.display();
     // Вычисляем адрес по букве
     vars[line[0] - 97] = process_expr();
 
   // Служебный вывод
   for(int i = 0; i < 26; i++){
-    Serial.print(vars[i]); 
+    Serial.print(vars[i]);
+    display.print(vars[i]);
+    display.display();     
   } 
-  Serial.println(""); 
+  Serial.println("");
+  display.println("");
+  display.display();  
       
     return 1;    
   }
   else {
     // иначе вычисляем выражение 
     Serial.println(process_expr());
+    display.println(process_expr());
+    display.display(); 
     return 1;
   }
   
@@ -195,6 +211,8 @@ int cmd_led(char **args) {
 	if (args[1] == NULL) {
 		// Сообщение об ошибке
     Serial.println("Expected argument (on/off) to \"led\"");
+    display.println("Expected argument (on/off) to \"led\"");
+    display.display(); 
 	}
 	else {
     String str = args[1];
@@ -202,10 +220,14 @@ int cmd_led(char **args) {
     if (str == "on") {
       digitalWrite(LED_BUILTIN, HIGH);
       Serial.println("Led ON"); 
+      display.println("Led ON");
+      display.display();
 	  }
     if (str == "off") {
       digitalWrite(LED_BUILTIN, LOW);
       Serial.println("Led OFF"); 
+      display.println("Led OFF");
+      display.display();      
 	  }
 	}
 	return 1;
@@ -217,10 +239,16 @@ int cmd_help(char **args) {
 	int i;
   Serial.println("Basic v.1.0 (c) 2022 Gor.Com");
 	Serial.println("The following command are built in:");
+  display.println("Basic v.1.0 (c) 2022 Gor.Com");
+  display.display(); 
+  display.println("The following command are built in:");
+  display.display();   
 	
 	// Выводим массив имен встроенных команд
 	for (i = 0; i < num_builtins(); i++) {
 		Serial.println(cmd_str[i]);
+    display.println(cmd_str[i]);
+    display.display();     
 	}
 	return 1;
 }
@@ -229,6 +257,8 @@ int cmd_help(char **args) {
 // Команда выход
 int cmd_exit(char **args) {
   Serial.println("Executed EXIT");
+  display.println("Executed EXIT");
+  display.display();
 	return 0;
 }
 
@@ -240,15 +270,23 @@ int cmd_list(char **args) {
       if(program[i*20] != 0x0D){ 
         Serial.print(i+1);
         Serial.print(" ");
+        display.print(i+1);
+        display.display();
+        display.print(" ");
+        display.display();        
       }
 
       for(int j = 0; j < MAX_LENGTH; j++){
         if(program[i*20 + j] != 0x0D){        
           Serial.print(program[i*20 + j]);
+          display.print(program[i*20 + j]);
+          display.display(); 
         }
       }
       if(program[i*20] != 0x0D){ 
         Serial.println("");
+        display.println("");
+        display.display(); 
       }        
     }
 	return 0;
@@ -284,17 +322,23 @@ int cmd_print(char **args) {
     for(int i = 1; i < 20; i++){
       if(args[1][i] == 34 || args[1][i] == 0x0D || args[1][i] == 0x20 || args[1][i] == 0){
         if(args[1][i] == 34 && args[1][i+1] != 0x3B){    
-           Serial.println(""); 
+          Serial.println(""); 
+          display.println("");
+          display.display();
         }
         break;
       } 
-      Serial.print(args[1][i]);    
+      Serial.print(args[1][i]);
+      display.print(args[1][i]);
+      display.display();    
     }
     
     return 0;
   }
 
   Serial.println(process_expr());
+  display.println(process_expr());
+  display.display();
 	return 0;
 }
 
@@ -310,15 +354,21 @@ int cmd_new(char **args) {
 // Команда ввода переменной
 int cmd_input(char **args) {
   Serial.print("?");
+  display.print("?");
+  display.display();
   while(Serial.available()==0);  //Ожидаем ввода данных
   // Вычисляем адрес по букве
   vars[args[1][0] - 97] = process_expr();//Serial.read();
 
   // Служебный вывод
   for(int i = 0; i < 26; i++){
-    Serial.print(vars[i]); 
+    Serial.print(vars[i]);
+    display.print(vars[i]);
+    display.display();     
   } 
-  Serial.println(""); 
+  Serial.println("");
+  display.println("");
+  display.display();   
   
 	return 0;
 }
@@ -357,19 +407,38 @@ int dec_str_to_number(char *line){
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT); // pin 13 - светодиод
 
+  // Инициализация дисплея  
+  display.begin();
+  display.clearDisplay();
+  display.display();
+    
+  display.setContrast(50); // установка контраста
+  //delay(1000);
+  display.setTextSize(1);  // установка размера шрифта
+  display.setTextColor(BLACK); // установка цвета текста
+  display.setCursor(0,0); // установка позиции курсора  
+
   Serial.begin(9600); // Открываем COM-порт, скорость 9600 bps
   while (!Serial); // Ждем пока Serial будет готов
-  Serial.println("Basic v.1.0 (c) 2022 Gor.Com");  
+  Serial.println("Basic v.1.0 (c) 2022 Gor.Com");
+  display.println("Basic v.1.0 (c) 2022 Gor.Com");
+  display.display();
+
   start_bas();
 }
 
 
 void loop() {
   running = 0;              // Обнуляем счетчик команд
-  Serial.print(">");        // Печатает приглашение ввода команды   
+  Serial.print(">");        // Печатает приглашение ввода команды
+  display.print(">");
+  display.display();     
+
   line = read_line();       // Получаем указатель на строку ввода
 
   Serial.println(line);     // Выводим введенную строчку на экран
+  display.println(line);
+  display.display();
 
   int number = dec_str_to_number(line);   
   

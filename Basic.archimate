@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="Basic" id="id-ac58f977e30f42c59b00149e42c7c51d" version="4.9.0">
-  <folder name="Strategy" id="id-4759c954368544d485a97c4195355fb8" type="strategy"/>
-  <folder name="Business" id="id-68edb91fb7f84a60ba83349a6cb50e35" type="business"/>
+  <folder name="Strategy" id="id-4759c954368544d485a97c4195355fb8" type="strategy">
+    <element xsi:type="archimate:CourseOfAction" name="Course of Action" id="id-e72b49a11dec4648982fb61ba92b13ff"/>
+  </folder>
+  <folder name="Business" id="id-68edb91fb7f84a60ba83349a6cb50e35" type="business">
+    <element xsi:type="archimate:BusinessProcess" name="Business Process" id="id-914bfe4893a041f481d10c3c324311bc"/>
+  </folder>
   <folder name="Application" id="id-12952cd4b4134a0a800769186cc5a52b" type="application">
     <element xsi:type="archimate:ApplicationService" name="Interpretator" id="id-076e363ea9d94f52bdb6548142955bd9"/>
     <element xsi:type="archimate:ApplicationService" name="Commands" id="id-e6ea49776bd14f2f9144c19381dc301d"/>
