@@ -1,4 +1,4 @@
-# Интерпретатор Basic TCP для Arduino
+# Basic на микроконтроллере ATmega328
 
 ![Basic.jpg](Basic.jpg)
 
